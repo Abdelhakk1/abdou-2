@@ -28,6 +28,18 @@ export const auth = {
     return bcrypt.compare(password, hash);
   },
 
+  async getUserByEmail(email: string) {
+    try {
+      const user = await db.queryOne(
+        'SELECT id, email, full_name, phone, created_at, updated_at FROM users WHERE email = $1',
+        [email]
+      );
+      return user;
+    } catch (error) {
+      return null;
+    }
+  },
+
   async signUp(email: string, password: string, fullName: string, phone?: string) {
     const hashedPassword = await this.hashPassword(password);
     const user = await db.queryOne(
@@ -43,7 +55,10 @@ export const auth = {
       throw new Error('Invalid credentials');
     }
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
-    return { user, token };
+    
+    // Return user without password hash
+    const { password_hash, ...userWithoutPassword } = user;
+    return { user: userWithoutPassword, token };
   },
 
   async signOut() {

@@ -6,39 +6,29 @@ export async function GET(request: NextRequest) {
   return withAdmin(request, async (req, user) => {
     try {
       // Get course orders stats
-      const { data: courseOrders, error: courseOrdersError } = await supabase
-        .from('course_orders')
-        .select('id, status');
-      
-      if (courseOrdersError) throw courseOrdersError;
+      const { rows: courseOrders } = await db.query(
+        'SELECT id, status FROM course_orders'
+      );
 
       // Get cake orders stats
-      const { data: cakeOrders, error: cakeOrdersError } = await supabase
-        .from('custom_cake_orders')
-        .select('id, status');
-      
-      if (cakeOrdersError) throw cakeOrdersError;
+      const { rows: cakeOrders } = await db.query(
+        'SELECT id, status FROM custom_cake_orders'
+      );
 
       // Get workshop reservations stats
-      const { data: workshopReservations, error: workshopReservationsError } = await supabase
-        .from('workshop_reservations')
-        .select('id, status');
-      
-      if (workshopReservationsError) throw workshopReservationsError;
+      const { rows: workshopReservations } = await db.query(
+        'SELECT id, status FROM workshop_reservations'
+      );
 
       // Get gallery items stats
-      const { data: galleryItems, error: galleryItemsError } = await supabase
-        .from('gallery_items')
-        .select('id');
-      
-      if (galleryItemsError) throw galleryItemsError;
+      const { rows: galleryItems } = await db.query(
+        'SELECT id FROM gallery_items'
+      );
 
       // Get contact messages stats
-      const { data: contactMessages, error: contactMessagesError } = await supabase
-        .from('contact_messages')
-        .select('id, status');
-        
-      if (contactMessagesError) throw contactMessagesError;
+      const { rows: contactMessages } = await db.query(
+        'SELECT id, status FROM contact_messages'
+      );
 
       const stats = {
         totalCourseOrders: courseOrders?.length || 0,

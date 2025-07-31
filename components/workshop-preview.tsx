@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-// Removed supabase import - using API calls instead
 
 const WorkshopPreview = () => {
   const [workshops, setWorkshops] = useState<any[]>([]);
@@ -27,15 +26,14 @@ const WorkshopPreview = () => {
   const loadWorkshops = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('workshop_schedules')
-        .select('*')
-        .eq('status', 'active')
-        .order('date', { ascending: true })
-        .limit(3);
+      const response = await fetch('/api/workshops');
       
-      if (error) throw error;
-      setWorkshops(data || []);
+      if (!response.ok) {
+        throw new Error('Failed to load workshops');
+      }
+      
+      const data = await response.json();
+      setWorkshops((data || []).slice(0, 3)); // Limit to 3 for preview
     } catch (error) {
       console.error('Error loading workshops:', error);
       toast.error('Failed to load workshops');

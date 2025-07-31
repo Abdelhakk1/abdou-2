@@ -16,7 +16,7 @@ export async function withAuth(
     }
 
     const token = authHeader.substring(7);
-    const user = await auth.verifyToken(token);
+    const user = await auth.getCurrentUser(token);
 
     if (!user) {
       return NextResponse.json(
@@ -51,7 +51,7 @@ export async function withAdmin(
     }
 
     const token = authHeader.substring(7);
-    const user = await auth.verifyToken(token);
+    const user = await auth.getCurrentUser(token);
 
     if (!user) {
       return NextResponse.json(

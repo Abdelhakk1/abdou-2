@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { auth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,42 +30,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sign up with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          phone: phone || null
-        }
-      }
-    });
-
-    if (authError) {
+    // Check if user already exists
+    const existingUser = await auth.getUserByEmail(email);
+    if (existingUser) {
       return NextResponse.json(
-        { message: authError.message },
+        { message: 'User already exists with this email' },
         { status: 400 }
       );
     }
 
-    // Create user profile in users table
-    if (authData.user) {
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          email: authData.user.email || email,
-          full_name: fullName,
-          phone: phone || null
-        });
+    // Sign up with local auth
+    const user = await auth.signUp(email, password, fullName, phone);
+    const { token } = await auth.signIn(email, password);
 
-      if (profileError) {
-        console.error('Error creating user profile:', profileError);
-      }
-    }
-
-    return NextResponse.json({ user: authData.user }, { status: 201 });
+    return NextResponse.json({ user, token }, { status: 201 });
   } catch (error: any) {
     console.error('Signup API error:', error);
     return NextResponse.json(

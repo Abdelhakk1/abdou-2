@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAdmin, withAuth } from '@/app/api/middleware';
-import { supabase } from '@/lib/supabase';
+import { customCakes } from '@/lib/custom-cakes';
+import { auth } from '@/lib/auth';
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   return withAdmin(request, async (req, user) => {
@@ -9,19 +10,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       const data = await req.json();
       const { status, cancellationReason } = data;
 
-      const updates: any = { status };
-      if (status === 'cancelled' && cancellationReason) {
-        updates.cancellation_reason = cancellationReason;
-      }
-
-      const { data: order, error } = await supabase
-        .from('custom_cake_orders')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const order = await customCakes.updateOrderStatus(id, status, cancellationReason);
       return NextResponse.json(order);
     } catch (error: any) {
       console.error('Error updating cake order:', error);
@@ -38,13 +27,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     try {
       const { id } = params;
       
-      const { data: order, error } = await supabase
-        .from('custom_cake_orders')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const order = await customCakes.getOrderById(id);
       
-      if (error) {
+      if (!order) {
         return NextResponse.json(
           { message: 'Order not found' },
           { status: 404 }
@@ -54,13 +39,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       // Check if user is authorized to view this order
       if (order.user_id !== user.id) {
         // Check if user is admin
-        const { data: adminData, error: adminError } = await supabase
-          .from('admin_users')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-          
-        if (adminError || !adminData) {
+        const isUserAdmin = await auth.isAdmin(user.id);
+        if (!isUserAdmin) {
           return NextResponse.json(
             { message: 'Unauthorized' },
             { status: 403 }

@@ -4,12 +4,21 @@ import { db } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await supabase
-      .from('system_settings')
-      .select('*');
+    const { searchParams } = new URL(request.url);
+    const key = searchParams.get('key');
     
-    if (error) throw error;
-    return NextResponse.json(data || []);
+    if (key) {
+      // Get specific setting
+      const setting = await db.queryOne(
+        'SELECT * FROM system_settings WHERE setting_key = $1',
+        [key]
+      );
+      return NextResponse.json(setting);
+    } else {
+      // Get all settings
+      const { rows } = await db.query('SELECT * FROM system_settings');
+      return NextResponse.json(rows || []);
+    }
   } catch (error: any) {
     console.error('Error getting system settings:', error);
     return NextResponse.json(
@@ -32,17 +41,14 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      const { data: setting, error } = await supabase
-        .from('system_settings')
-        .update({ 
-          setting_value: value,
-          updated_by: user.id
-        })
-        .eq('setting_key', key)
-        .select()
-        .single();
+      const setting = await db.queryOne(
+        `UPDATE system_settings 
+         SET setting_value = $1, updated_by = $2 
+         WHERE setting_key = $3 
+         RETURNING *`,
+        [value, user.id, key]
+      );
       
-      if (error) throw error;
       return NextResponse.json(setting);
     } catch (error: any) {
       console.error('Error updating system setting:', error);

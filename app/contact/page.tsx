@@ -20,6 +20,7 @@ import {
   Send,
   CheckCircle
 } from 'lucide-react';
+import { contact } from '@/lib/contact';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -49,12 +50,7 @@ export default function Contact() {
   const onSubmit = async (data: ContactForm) => {
     setIsSubmitting(true);
     try {
-      // This would normally submit the form to an API
-      console.log('Form data:', data);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await contact.submitMessage(data);
       toast.success('Message sent successfully! We\'ll get back to you within 24 hours.');
       setIsSubmitted(true);
       form.reset();

@@ -16,68 +16,53 @@ export async function POST(request: NextRequest) {
       }
 
       // Get receipt and order details
-      const { data: receipt, error: receiptError } = await supabase
-        .from('payment_receipts')
-        .select(`
-          *,
-          course_orders!inner (
-            id,
-            user_id,
-            course_name
-          )
-        `)
-        .eq('id', receiptId)
-        .single();
+      const receipt = await db.queryOne(
+        `SELECT pr.*, co.id as order_id, co.user_id, co.course_name
+         FROM payment_receipts pr
+         JOIN course_orders co ON pr.order_id = co.id
+         WHERE pr.id = $1`,
+        [receiptId]
+      );
 
-      if (receiptError) throw receiptError;
+      if (!receipt) {
+        return NextResponse.json(
+          { message: 'Receipt not found' },
+          { status: 404 }
+        );
+      }
 
       // Get the course details to find the Google Drive link
-      const { data: course, error: courseError } = await supabase
-        .from('online_courses')
-        .select('google_drive_link')
-        .eq('title', receipt.course_orders.course_name)
-        .eq('status', 'active')
-        .single();
-
-      if (courseError) throw courseError;
+      const course = await db.queryOne(
+        'SELECT google_drive_link FROM online_courses WHERE title = $1 AND status = $2',
+        [receipt.course_name, 'active']
+      );
 
       if (!course || !course.google_drive_link) {
         throw new Error('Course not found or Google Drive link not set');
       }
 
       // Verify payment
-      const { error: updateError } = await supabase
-        .from('payment_receipts')
-        .update({ 
-          verified: true,
-          verified_at: new Date().toISOString(),
-          verified_by: user.id
-        })
-        .eq('id', receiptId);
-
-      if (updateError) throw updateError;
+      await db.queryOne(
+        `UPDATE payment_receipts 
+         SET verified = true, verified_at = NOW(), verified_by = $1 
+         WHERE id = $2 
+         RETURNING *`,
+        [user.id, receiptId]
+      );
 
       // Update order status
-      const { error: orderError } = await supabase
-        .from('course_orders')
-        .update({ status: 'verified' })
-        .eq('id', receipt.course_orders.id);
-
-      if (orderError) throw orderError;
+      await db.queryOne(
+        'UPDATE course_orders SET status = $1 WHERE id = $2 RETURNING *',
+        ['verified', receipt.order_id]
+      );
 
       // Grant course access
-      const { data: accessData, error: accessError } = await supabase
-        .from('course_access')
-        .insert({
-          user_id: receipt.course_orders.user_id,
-          order_id: receipt.course_orders.id,
-          course_name: receipt.course_orders.course_name,
-          google_drive_link: course.google_drive_link
-        })
-        .select()
-        .single();
-
-      if (accessError) throw accessError;
+      const accessData = await db.queryOne(
+        `INSERT INTO course_access (user_id, order_id, course_name, google_drive_link)
+         VALUES ($1, $2, $3, $4)
+         RETURNING *`,
+        [receipt.user_id, receipt.order_id, receipt.course_name, course.google_drive_link]
+      );
 
       return NextResponse.json(accessData);
     } catch (error: any) {

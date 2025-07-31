@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { workshops } from '@/lib/workshops';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,16 +14,8 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    const { data, error } = await supabase
-      .from('workshop_reservations')
-      .select('id, status')
-      .eq('user_id', userId)
-      .eq('workshop_id', workshopId)
-      .eq('status', 'pending')
-      .maybeSingle();
-    
-    if (error) throw error;
-    return NextResponse.json(data || null);
+    const reservation = await workshops.checkExistingReservation(userId, workshopId);
+    return NextResponse.json(reservation || null);
   } catch (error: any) {
     console.error('Error checking existing reservation:', error);
     return NextResponse.json(

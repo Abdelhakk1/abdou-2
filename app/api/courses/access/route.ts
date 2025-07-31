@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/app/api/middleware';
-import { supabase } from '@/lib/supabase';
+import { courses } from '@/lib/courses';
 
 export async function GET(request: NextRequest) {
   return withAuth(request, async (req, user) => {
     try {
-      const { data, error } = await supabase
-        .from('course_access')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('granted_at', { ascending: false });
-
-      if (error) throw error;
-      return NextResponse.json(data || []);
+      const courseAccess = await courses.getUserCourseAccess(user.id);
+      return NextResponse.json(courseAccess || []);
     } catch (error: any) {
       console.error('Error getting user course access:', error);
       return NextResponse.json(

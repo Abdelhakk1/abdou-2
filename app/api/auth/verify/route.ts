@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { auth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,9 +12,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const user = await auth.getCurrentUser(token);
 
-    if (error || !user) {
+    if (!user) {
       return NextResponse.json(
         { message: 'Invalid or expired token' },
         { status: 401 }

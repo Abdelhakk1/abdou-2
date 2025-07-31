@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAdmin } from '@/app/api/middleware';
-import { supabase } from '@/lib/supabase';
+import { workshops } from '@/lib/workshops';
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   return withAdmin(request, async (req, user) => {
@@ -9,19 +9,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       const data = await req.json();
       const { status, cancellationReason } = data;
 
-      const updates: any = { status };
-      if (status === 'cancelled' && cancellationReason) {
-        updates.cancellation_reason = cancellationReason;
-      }
-
-      const { data: reservation, error } = await supabase
-        .from('workshop_reservations')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const reservation = await workshops.updateReservationStatus(id, status, cancellationReason);
       return NextResponse.json(reservation);
     } catch (error: any) {
       console.error('Error updating workshop reservation:', error);

@@ -18,7 +18,6 @@ import {
   ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
-// Removed supabase import - using API calls instead
 
 export default function Courses() {
   const { user, loading } = useAuth();

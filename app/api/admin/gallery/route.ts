@@ -4,10 +4,10 @@ import { db } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
-    const { rows: data } = await db.query(
+    const { rows } = await db.query(
       'SELECT * FROM gallery_items ORDER BY display_order ASC, created_at DESC'
     );
-    return NextResponse.json(data || []);
+    return NextResponse.json(rows || []);
   } catch (error: any) {
     console.error('Error getting gallery items:', error);
     return NextResponse.json(

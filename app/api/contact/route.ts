@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,20 +15,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert contact message
-    const { data: contactMessage, error } = await supabase
-      .from('contact_messages')
-      .insert({
-        name,
-        email,
-        phone,
-        subject,
-        message,
-        status: 'unread'
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
+    const contactMessage = await db.queryOne(
+      `INSERT INTO contact_messages (name, email, phone, subject, message, status)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [name, email, phone, subject, message, 'unread']
+    );
 
     return NextResponse.json(contactMessage, { status: 201 });
   } catch (error: any) {
@@ -42,13 +34,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await supabase
-      .from('contact_messages')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { rows } = await db.query(
+      'SELECT * FROM contact_messages ORDER BY created_at DESC'
+    );
     
-    if (error) throw error;
-    return NextResponse.json(data || []);
+    return NextResponse.json(rows || []);
   } catch (error: any) {
     console.error('Error getting contact messages:', error);
     return NextResponse.json(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAdmin } from '@/app/api/middleware';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/database';
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   return withAdmin(request, async (req, user) => {
@@ -14,14 +14,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         updates.admin_notes = adminNotes;
       }
 
-      const { data: message, error } = await supabase
-        .from('contact_messages')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const setClause = Object.keys(updates).map((key, i) => `${key} = $${i + 2}`).join(', ');
+      const values = Object.values(updates);
 
-      if (error) throw error;
+      const message = await db.queryOne(
+        `UPDATE contact_messages SET ${setClause} WHERE id = $1 RETURNING *`,
+        [id, ...values]
+      );
+
       return NextResponse.json(message);
     } catch (error: any) {
       console.error('Error updating contact message:', error);
@@ -38,12 +38,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     try {
       const { id } = params;
       
-      const { error } = await supabase
-        .from('contact_messages')
-        .delete()
-        .eq('id', id);
+      await db.queryOne(
+        'DELETE FROM contact_messages WHERE id = $1 RETURNING *',
+        [id]
+      );
 
-      if (error) throw error;
       return NextResponse.json({ success: true });
     } catch (error: any) {
       console.error('Error deleting contact message:', error);

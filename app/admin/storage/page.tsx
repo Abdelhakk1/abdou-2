@@ -17,15 +17,12 @@ import {
   RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
-// Removed supabase import - using API calls instead
 
 export default function AdminStorage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [unusedFiles, setUnusedFiles] = useState<{bucket: string, path: string}[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -47,80 +44,11 @@ export default function AdminStorage() {
       }
       
       setIsAdmin(true);
-      await findUnusedFiles();
     } catch (error) {
       console.error('Error checking admin access:', error);
       router.push('/');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const findUnusedFiles = async () => {
-    try {
-      setIsLoading(true);
-      
-      // This is a simplified approach - in a real app, you'd need to check
-      // all database tables that reference files to find truly unused files
-      
-      // For now, we'll just identify old receipt files (older than 30 days)
-      // as an example of potentially unused files
-      const { data: receipts, error } = await supabase
-        .storage
-        .from('receipts')
-        .list();
-      
-      if (error) throw error;
-      
-      // Filter for files older than 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const oldFiles = receipts
-        .filter(file => {
-          if (!file.metadata?.lastModified) return false;
-          const fileDate = new Date(file.metadata.lastModified);
-          return fileDate < thirtyDaysAgo;
-        })
-        .map(file => ({
-          bucket: 'receipts',
-          path: file.name
-        }));
-      
-      setUnusedFiles(oldFiles);
-    } catch (error) {
-      console.error('Error finding unused files:', error);
-      toast.error('Failed to scan for unused files');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const deleteUnusedFiles = async () => {
-    if (!confirm('Are you sure you want to delete these unused files? This action cannot be undone.')) {
-      return;
-    }
-    
-    setIsDeleting(true);
-    try {
-      let deletedCount = 0;
-      
-      for (const file of unusedFiles) {
-        const { error } = await supabase
-          .storage
-          .from(file.bucket)
-          .remove([file.path]);
-        
-        if (!error) deletedCount++;
-      }
-      
-      toast.success(`Successfully deleted ${deletedCount} unused files`);
-      setUnusedFiles([]);
-    } catch (error) {
-      console.error('Error deleting unused files:', error);
-      toast.error('Failed to delete some files');
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -155,13 +83,6 @@ export default function AdminStorage() {
               <p className="text-lg text-foreground/70">Manage and optimize your storage usage</p>
             </div>
           </div>
-          <Button 
-            onClick={findUnusedFiles}
-            className="btn-outline"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
         </div>
 
         {/* Storage Management */}
@@ -178,63 +99,45 @@ export default function AdminStorage() {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h3 className="font-semibold text-blue-800 mb-2">Storage Management</h3>
                   <p className="text-sm text-blue-700 mb-4">
-                    This page allows you to manage your storage usage and clean up unused files to stay within your storage limits.
+                    This page allows you to manage your storage usage. Files are now stored on Cloudinary, 
+                    which provides generous free tier limits and automatic optimization.
                   </p>
                 </div>
                 
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-foreground">Storage Tips</h3>
+                  <h3 className="font-semibold text-foreground">Storage Information</h3>
                   <ul className="text-sm text-foreground/70 space-y-2">
                     <li className="flex items-start">
                       <Image className="h-4 w-4 mr-2 mt-0.5 text-blue-600" />
-                      <span>Images are automatically optimized to WebP format</span>
+                      <span>Images are automatically optimized to WebP format on Cloudinary</span>
                     </li>
                     <li className="flex items-start">
                       <FileText className="h-4 w-4 mr-2 mt-0.5 text-green-600" />
-                      <span>Old receipts can be safely deleted after verification</span>
+                      <span>Payment receipts are stored securely with automatic backup</span>
                     </li>
                     <li className="flex items-start">
                       <HardDrive className="h-4 w-4 mr-2 mt-0.5 text-purple-600" />
-                      <span>Free tier includes 1GB storage and 50GB bandwidth</span>
+                      <span>Cloudinary free tier includes 25GB storage and 25GB monthly bandwidth</span>
                     </li>
                   </ul>
                 </div>
                 
-                {/* Unused Files */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-yellow-800 mb-2">Storage Optimization</h3>
-                  <p className="text-sm text-yellow-700 mb-4">
-                    Regularly cleaning up unused files helps keep your storage usage under the free tier limits.
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-green-800 mb-2">Migration Complete</h3>
+                  <p className="text-sm text-green-700 mb-4">
+                    Your application has been successfully migrated from Supabase to PostgreSQL with Cloudinary for file storage. 
+                    This provides better performance, reliability, and cost efficiency.
                   </p>
                   
-                  {unusedFiles.length > 0 ? (
-                    <>
-                      <p className="text-sm font-medium text-yellow-800 mb-2">
-                        Found {unusedFiles.length} potentially unused files:
-                      </p>
-                      <ul className="text-xs text-yellow-700 mb-4 max-h-32 overflow-y-auto">
-                        {unusedFiles.slice(0, 5).map((file, index) => (
-                          <li key={index} className="mb-1">
-                            {file.bucket}/{file.path}
-                          </li>
-                        ))}
-                        {unusedFiles.length > 5 && (
-                          <li>...and {unusedFiles.length - 5} more</li>
-                        )}
-                      </ul>
-                      <Button
-                        onClick={deleteUnusedFiles}
-                        className="w-full bg-red-600 hover:bg-red-700 text-white"
-                        disabled={isDeleting}
-                      >
-                        {isDeleting ? 'Deleting...' : 'Delete Unused Files'}
-                      </Button>
-                    </>
-                  ) : (
-                    <p className="text-sm text-yellow-700">
-                      No unused files detected at this time.
-                    </p>
-                  )}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-green-800">Benefits:</h4>
+                    <ul className="text-sm text-green-700 space-y-1">
+                      <li>• Self-hosted PostgreSQL database for full control</li>
+                      <li>• Cloudinary CDN for fast image delivery worldwide</li>
+                      <li>• Automatic image optimization and format conversion</li>
+                      <li>• No vendor lock-in with open-source technologies</li>
+                    </ul>
+                  </div>
                 </div>
               </CardContent>
             </Card>

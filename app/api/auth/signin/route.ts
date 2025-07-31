@@ -13,25 +13,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sign in with Supabase Auth
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    // Sign in with local auth
+    const { user, token } = await auth.signIn(email, password);
 
-    if (error) {
-      return NextResponse.json(
-        { message: error.message },
-        { status: 401 }
-      );
-    }
-
-    return NextResponse.json(data);
+    return NextResponse.json({ user, token });
   } catch (error: any) {
     console.error('Signin API error:', error);
     return NextResponse.json(
-      { message: error.message || 'Internal server error' },
-      { status: 500 }
+      { message: error.message || 'Invalid credentials' },
+      { status: 401 }
     );
   }
 }

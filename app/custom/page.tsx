@@ -21,7 +21,6 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import AuthModal from '@/components/auth/auth-modal';
 import { customCakes } from '@/lib/custom-cakes';
-// Removed supabase import - using API calls instead
 import CloudinaryUpload from '@/components/ui/cloudinary-upload';
 
 // Define the cake sizes and flavors with prices
@@ -213,7 +212,7 @@ export default function Custom() {
 
   const loadUnavailableDates = async () => {
     try {
-      const response = await fetch('/api/admin/unavailable-dates');
+      const response = await fetch('/api/admin/dates');
       
       if (!response.ok) {
         throw new Error('Failed to load unavailable dates');

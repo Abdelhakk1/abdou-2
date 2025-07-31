@@ -30,7 +30,6 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
-// Removed supabase import - using API calls instead
 import { workshops } from '@/lib/workshops';
 
 const reservationSchema = z.object({
@@ -77,13 +76,14 @@ export default function Workshops() {
 
   const loadWorkshops = async () => {
     try {
-      const { data, error } = await supabase
-        .from('workshop_schedules')
-        .select('*')
-        .eq('status', 'active')
-        .order('date', { ascending: true });
+      setIsLoading(true);
+      const response = await fetch('/api/workshops');
       
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to load workshops');
+      }
+      
+      const data = await response.json();
       setWorkshopSchedules(data || []);
     } catch (error) {
       console.error('Error loading workshops:', error);
@@ -95,13 +95,13 @@ export default function Workshops() {
 
   const loadSystemSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('*')
-        .eq('setting_key', 'workshop_reservations_open')
-        .single();
+      const response = await fetch('/api/admin/settings?key=workshop_reservations_open');
       
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to load system settings');
+      }
+      
+      const data = await response.json();
       setWorkshopReservationsOpen(data?.setting_value || false);
     } catch (error) {
       console.error('Error loading system settings:', error);
@@ -110,14 +110,15 @@ export default function Workshops() {
 
   const loadWorkshopGallery = async () => {
     try {
-      const { data, error } = await supabase
-        .from('gallery_items')
-        .select('*')
-        .eq('category', 'workshops')
-        .limit(6);
+      const response = await fetch('/api/gallery');
       
-      if (error) throw error;
-      setWorkshopGalleryItems(data || []);
+      if (!response.ok) {
+        throw new Error('Failed to load gallery');
+      }
+      
+      const data = await response.json();
+      const workshopItems = (data || []).filter((item: any) => item.category === 'workshops').slice(0, 6);
+      setWorkshopGalleryItems(workshopItems);
     } catch (error) {
       console.error('Error loading workshop gallery:', error);
     }
@@ -136,11 +137,15 @@ export default function Workshops() {
 
     // Check if user already has a pending reservation for this workshop
     try {
-      const existingReservation = await workshops.checkExistingReservation(user.id, workshop.id);
+      const response = await fetch(`/api/workshops/check?userId=${user.id}&workshopId=${workshop.id}`);
       
-      if (existingReservation) {
-        toast.error('You already have a pending reservation for this workshop. Please wait for admin confirmation or cancellation before submitting a new reservation.');
-        return;
+      if (response.ok) {
+        const existingReservation = await response.json();
+        
+        if (existingReservation) {
+          toast.error('You already have a pending reservation for this workshop. Please wait for admin confirmation or cancellation before submitting a new reservation.');
+          return;
+        }
       }
     } catch (error) {
       console.error('Error checking existing reservation:', error);
