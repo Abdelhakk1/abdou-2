@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keep Alive</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      background-color: #f9f5f0;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #333;
+      font-size: 24px;
+      margin-top: 0;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 4px;
+      background-color: #e6f7ff;
+      border-left: 4px solid #1890ff;
+    }
+    .log {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .success {
+      color: #52c41a;
+    }
+    .error {
+      color: #f5222d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Supabase Keep-Alive Service</h1>
+    <p>This page helps keep your Supabase database active by sending periodic pings to prevent it from pausing due to inactivity on the free tier.</p>
+    
+    <div class="status" id="status">
+      Status: Initializing...
+    </div>
+    
+    <h3>Activity Log:</h3>
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+    
+    // Function to add log entry
+    function addLog(message, isError = false) {
+      const now = new Date();
+      const timestamp = now.toLocaleString();
+      const logEntry = document.createElement('div');
+      logEntry.className = isError ? 'error' : 'success';
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      logEl.prepend(logEntry);
+      
+      // Keep only the last 20 log entries
+      while (logEl.children.length > 20) {
+        logEl.removeChild(logEl.lastChild);
+      }
+    }
+    
+    // Function to ping the keep-alive endpoint
+    async function pingKeepAlive() {
+      try {
+        statusEl.textContent = 'Status: Pinging Supabase...';
+        
+        const response = await fetch('/api/keep-alive');
+        const data = await response.json();
+        
+        if (data.success) {
+          statusEl.textContent = `Status: Active - Last ping: ${new Date().toLocaleString()}`;
+          addLog(`Ping successful: ${data.message}`);
+        } else {
+          statusEl.textContent = `Status: Error - Last attempt: ${new Date().toLocaleString()}`;
+          addLog(`Ping failed: ${data.message}`, true);
+        }
+      } catch (error) {
+        statusEl.textContent = `Status: Error - Last attempt: ${new Date().toLocaleString()}`;
+        addLog(`Ping error: ${error.message}`, true);
+      }
+    }
+
+    // Ping immediately when loaded
+    pingKeepAlive();
+    
+    // Then ping every 6 days (518400000 ms)
+    // This is just under the 7-day inactivity limit for Supabase free tier
+    setInterval(pingKeepAlive, 518400000);
+    
+    // Also ping every 24 hours (86400000 ms) as a backup
+    setInterval(pingKeepAlive, 86400000);
+    
+    // Add initial log
+    addLog('Keep-alive service initialized');
+  </script>
+</body>
+</html>

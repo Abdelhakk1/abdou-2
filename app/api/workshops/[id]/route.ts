@@ -1,0 +1,34 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { withAdmin } from '@/app/api/middleware';
+import { supabase } from '@/lib/supabase';
+
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  return withAdmin(request, async (req, user) => {
+    try {
+      const { id } = params;
+      const data = await req.json();
+      const { status, cancellationReason } = data;
+
+      const updates: any = { status };
+      if (status === 'cancelled' && cancellationReason) {
+        updates.cancellation_reason = cancellationReason;
+      }
+
+      const { data: reservation, error } = await supabase
+        .from('workshop_reservations')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return NextResponse.json(reservation);
+    } catch (error: any) {
+      console.error('Error updating workshop reservation:', error);
+      return NextResponse.json(
+        { message: error.message || 'Failed to update workshop reservation' },
+        { status: 500 }
+      );
+    }
+  });
+}
