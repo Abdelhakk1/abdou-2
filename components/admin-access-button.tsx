@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { admin } from '@/lib/admin';
 
 export default function AdminAccessButton() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, isAdmin: checkIsAdmin } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -16,7 +15,7 @@ export default function AdminAccessButton() {
       if (user) {
         try {
           setIsLoading(true);
-          const adminStatus = await admin.isAdmin(user.id);
+          const adminStatus = await checkIsAdmin(user.id);
           setIsAdmin(adminStatus);
         } catch (error) {
           console.error('Error checking admin status:', error);

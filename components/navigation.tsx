@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Menu, X, User, LayoutDashboard, Lock, Shield, LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { admin } from '@/lib/admin';
 import AuthModal from '@/components/auth/auth-modal';
 import ProfileDropdown from '@/components/ui/profile-dropdown';
 import { useRouter, usePathname } from 'next/navigation';
@@ -16,6 +15,7 @@ const Navigation = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const { user, loading, signOut } = useAuth();
+  const { isAdmin } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -31,7 +31,7 @@ const Navigation = () => {
     const checkAdminStatus = async () => {
       if (user) {
         try {
-          const adminStatus = await admin.isAdmin(user.id);
+          const adminStatus = await isAdmin(user.id);
           setIsAdmin(adminStatus);
         } catch (error) {
           console.error('Error checking admin status:', error);

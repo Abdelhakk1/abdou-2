@@ -201,16 +201,17 @@ export function useAuth() {
     if (!token) return false;
     
     try {
-      const response = await fetch('/api/make-admin', {
-        method: 'POST',
+      const response = await fetch('/api/auth/is-admin', {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId }),
+        }
       });
       
-      return response.ok;
+      if (response.ok) {
+        const data = await response.json();
+        return data.isAdmin;
+      }
+      return false;
     } catch (error) {
       console.error('Error checking admin status:', error);
       return false;

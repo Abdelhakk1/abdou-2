@@ -36,6 +36,11 @@ const nextConfig = {
         http: false,
         https: false,
         zlib: false,
+        dns: false,
+        tls: false,
+        net: false,
+        pg: false,
+        'pg-native': false,
       };
     }
     return config;
