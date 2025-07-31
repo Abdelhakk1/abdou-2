@@ -13,7 +13,7 @@ const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
   const { user, loading, signOut } = useAuth();
   const { isAdmin } = useAuth();
   const router = useRouter();
@@ -32,10 +32,10 @@ const Navigation = () => {
       if (user) {
         try {
           const adminStatus = await isAdmin(user.id);
-          setIsAdmin(adminStatus);
+          setIsUserAdmin(adminStatus);
         } catch (error) {
           console.error('Error checking admin status:', error);
-          setIsAdmin(false);
+          setIsUserAdmin(false);
         }
       }
     };
@@ -126,7 +126,7 @@ const Navigation = () => {
               ))}
               
               {/* Admin Dashboard Button (Desktop) */}
-              {isAdmin && user && (
+              {isUserAdmin && user && (
                 <Link
                   href="/admin"
                   className="text-blue-600 hover:text-blue-700 transition-colors duration-200 font-medium text-sm uppercase tracking-wide py-2 flex items-center"
@@ -189,7 +189,7 @@ const Navigation = () => {
                 ))}
                 
                 {/* Admin Dashboard Link (Mobile) */}
-                {isAdmin && user && (
+                {isUserAdmin && user && (
                   <a
                     href="/admin"
                     className="mobile-nav-item block px-4 py-4 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200 font-medium text-base uppercase tracking-wide flex items-center"
